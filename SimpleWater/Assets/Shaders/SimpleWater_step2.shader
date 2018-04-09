@@ -107,8 +107,7 @@ Shader "Anty/Water/SimpleWater_step2"
 			float4 frag(v2f i):SV_TARGET
 			{
 				//组装 我为什么要把切线坐标系的三个基都搞过来呢，我又不用切线空间的法线贴图，我只是用一个法线啊,哦对，我需要切线空间和世界空间的变换(好在书上的公式都描述的是世界空间下的)
-				float3 worldNormal 	= normalize(float3(i.WT0.x,i.WT1.x,i.WT2.x));
-				// float3 worldNormal 	= normalize(float3(1,1,1));
+				float3 worldNormal 	= float3(i.WT0.x,i.WT1.x,i.WT2.x);
 				// float3 worldNormal 	= float3(i.WT0.y,i.WT1.y,i.WT2.y);
 				// float3 worldNormal 	= float3(i.WT0.z,i.WT1.z,i.WT2.z);
 				float3 worldPos 	= float3(i.WT0.w,i.WT1.w,i.WT2.w);
@@ -123,7 +122,7 @@ Shader "Anty/Water/SimpleWater_step2"
 
 				// return fixed4(0,0,worldNormal.y,1);
 				float3 normalColor = worldNormal / 2 + float3(0.5,0.5,0.5);
-				return float4(normalColor,1);
+				return fixed4(normalColor,1);
 			}
 			ENDCG
 		}
