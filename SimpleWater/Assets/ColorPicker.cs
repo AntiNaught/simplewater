@@ -95,8 +95,12 @@ public class ColorPicker : MonoBehaviour
                 //GUI.Label(new Rect(10, 160, 100, 20), "B: " + System.Math.Round((double)m_pickedColor.b, 4) + "\t(" + Mathf.FloorToInt(m_pickedColor.b * 255) + ")");
                 GUI.Label(new Rect(10, 180, 100, 20), "A: " + System.Math.Round((double)m_pickedColor.a, 4) + "\t(" + Mathf.FloorToInt(m_pickedColor.a * 255) + ")");
 
-                GUI.Label(new Rect(10, 120, 100, 20), "R: " + System.Math.Round((double)m_pickedColor.r, 4) + "\t(" + Mathf.FloorToInt(m_pickedColor.r  * 2  - 1) + ")");
-                GUI.Label(new Rect(10, 140, 100, 20), "G: " + System.Math.Round((double)m_pickedColor.g, 4) + "\t(" + Mathf.FloorToInt(m_pickedColor.g * 2 - 1) + ")");
-                GUI.Label(new Rect(10, 160, 100, 20), "B: " + System.Math.Round((double)m_pickedColor.b, 4) + "\t(" + Mathf.FloorToInt(m_pickedColor.b * 2 - 1) + ")");
+                //GUI.Label(new Rect(10, 120, 100, 20), "R: " + System.Math.Round((double)m_pickedColor.r, 4) + "\t(" +  (m_pickedColor.r   - 0.5f)  * 2 + ")");
+                //GUI.Label(new Rect(10, 140, 100, 20), "G: " + System.Math.Round((double)m_pickedColor.g, 4) + "\t(" + (m_pickedColor.g  -0.5f )  * 2 + ")");
+                //GUI.Label(new Rect(10, 160, 100, 20), "B: " + System.Math.Round((double)m_pickedColor.b, 4) + "\t(" + (m_pickedColor.b  - 0.5f) * 2 + ")");
+
+                GUI.Label(new Rect(10, 120, 100, 20), "R: " +  + (m_pickedColor.r  - 0.5f) * 2 + ")");
+                GUI.Label(new Rect(10, 140, 100, 20), "G: " +  + (m_pickedColor.g - 0.5f  ) * 2  + ")");
+                GUI.Label(new Rect(10, 160, 100, 20), "B: " + + (m_pickedColor.b  - 0.5f ) * 2  + ")");
         }
 }
