@@ -53,9 +53,9 @@ Shader "Anty/Water/SimpleWater_step2"
 			struct param
 			{
 				float4 worldPos;
-				float3 normal;
-				float3 biNormal;
-				float3 tangent;
+				float3 worldNormal;
+				float3 worldBiNormal;
+				float3 worldTangent;
 			};
 
 			//gerstner 波，顶点位置和法线
@@ -67,21 +67,22 @@ Shader "Anty/Water/SimpleWater_step2"
 				float w = (g * 2 * PI / L);												//角频率(degree/m)	 忽略高次项的水的传播关系
 				float psi = S * w;															//角速度(degree/s)
 				float3 d = float3(0,0,1);															//垂直于波阵面的水平向量（波运动方向），(风向)
-				float u = dot(d.xz,vertex.xz) * w - _Time.y * psi;		
+				float u = dot(d.xz,vertex.xz) * w + _Time.y * psi;		
 				float sinu,cosu;
 				sincos(u,sinu,cosu);
-				float px = vertex.x - Q * A * d.x * cosu;
-				float pz = vertex.z - Q * A * d.z * cosu;
+				float px = vertex.x + Q * A * d.x * cosu;
+				float pz = vertex.z + Q * A * d.z * cosu;
 				float py = A * sinu;	//波1
 				pa.worldPos = float4(px ,py, pz , vertex.w);
+				pa.worldPos = mul(unity_ObjectToWorld,pa.worldPos);
 
 				float sino,coso;
 				sincos(w * dot(d,pa.worldPos) + psi * _Time.y,sino,coso);
 
-				//书上并没有特定的左右手坐标系，只是书上的mesh面朝向z，属于旋转
-				pa.normal 	= normalize(float3( -d.x* w * A * coso, -d.y * w * A * coso, 1 - Q * w * A * sino ));	//切线空间z,这里没有用到什么bump map ,所以 z 基就是法线
-				pa.biNormal = normalize(float3( 1 - Q * d.x * d.x * w * A * sino , - Q * d.x * d.y * w * A * sino , d.x * w * A * coso ));
-				pa.tangent 	= normalize(float3( -Q * d.x * d.y * w * A * sino , 1 - Q * d.y * d.y * w * A * sino , d.y * w * A * coso));
+				//书上并没有特定的左右手坐标系，只是书上的mesh面朝向z，这里把d.y换成d.z就可以了
+				pa.worldNormal 		= normalize(UnityObjectToWorldDir (float3( - d.x * w * A * coso, - d.z * w * A * coso, 1 - Q * w * A * sino )));
+				pa.worldBiNormal 	= normalize(UnityObjectToWorldDir (float3( 1 - Q * d.x * d.x * w * A * sino , - Q * d.x * d.z * w * A * sino , d.x * w * A * coso )));
+				pa.worldTangent 	= normalize(UnityObjectToWorldDir (float3( -Q * d.x * d.z * w * A * sino , - 1 + Q * d.z * d.z * w * A * sino , d.z * w * A * coso)));
 
 				return pa;
 			}
@@ -96,27 +97,32 @@ Shader "Anty/Water/SimpleWater_step2"
 				// o.color = fixed4(-p.worldPos.y,p.worldPos.y,0,1);	//Debug 染色 ： 法线越向上，越绿，越向下越蓝
 				o.color = fixed4(0,0,0,0);
 				o.uv = v.texcoord;
-				o.WT0 = float4(p.normal.x,p.biNormal.x,p.tangent.x,p.worldPos.x);
-				o.WT1 = float4(p.normal.y,p.biNormal.y,p.tangent.y,p.worldPos.y);
-				o.WT2 = float4(p.normal.z,p.biNormal.z,p.tangent.z,p.worldPos.z);
+				o.WT0 = float4(p.worldNormal.x,p.worldBiNormal.x,p.worldTangent.x,p.worldPos.x);
+				o.WT1 = float4(p.worldNormal.y,p.worldBiNormal.y,p.worldTangent.y,p.worldPos.y);
+				o.WT2 = float4(p.worldNormal.z,p.worldBiNormal.z,p.worldTangent.z,p.worldPos.z);
 				return o;
 			}
-			// 法线的计算放在vertex shader 中的话，
 
+			// 法线的计算放在vertex shader 中的话，
 			float4 frag(v2f i):SV_TARGET
 			{
 				//组装 我为什么要把切线坐标系的三个基都搞过来呢，我又不用切线空间的法线贴图，我只是用一个法线啊,哦对，我需要切线空间和世界空间的变换(好在书上的公式都描述的是世界空间下的)
-				float3 worldNormal 	= UnityObjectToWorldNormal(float3(i.WT0.x,i.WT1.x,i.WT2.x));
-				float3 worldPos = float3(i.WT0.w,i.WT1.w,i.WT2.w);
+				float3 worldNormal 	= float3(i.WT0.x,i.WT1.x,i.WT2.x);
+				// float3 worldNormal 	= float3(i.WT0.y,i.WT1.y,i.WT2.y);
+				// float3 worldNormal 	= float3(i.WT0.z,i.WT1.z,i.WT2.z);
+				float3 worldPos 	= float3(i.WT0.w,i.WT1.w,i.WT2.w);
 				//uv
 				i.uv.xy = i.uv.xy * _Diffuse_ST.xy + _Diffuse_ST.zw;
 				//albedo
-				fixed3 albedo = tex2D(_Diffuse,i.uv.xy).rgb;
+				fixed4 albedo = tex2D(_Diffuse,i.uv.xy);
 				//diffuse
 				fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz - worldPos);
-				fixed4 diffuse = max(0,dot(worldLightDir,worldNormal)) * _LightColor0;
+				// WorldSpaceLightDir
+				fixed4 diffuse = max(0,dot(normalize(WorldSpaceLightDir(float4(worldPos,1))),worldNormal)) * albedo * _LightColor0;
 
-				return diffuse;
+				// return fixed4(0,0,worldNormal.y,1);
+				float3 normalColor = worldNormal / 2 + float3(0.5,0.5,0.5);
+				return fixed4(normalColor,1);
 			}
 			ENDCG
 		}
@@ -124,7 +130,7 @@ Shader "Anty/Water/SimpleWater_step2"
 	Fallback "DIFFUSE"
 }
 
-// step 1 : 逐顶点叠加波 √ 								效果很蛋疼，顶点太疏
+// step 1 : 逐顶点叠加波 √ 效果很蛋疼，顶点太疏
 // step 2 : 流动效果（uv偏移）√,尖浪(gerstner波)√,波长 ，波速
 // step 3 : fresnil
 // step 4 : 波的扰动（方向波的多个波源产生的叠加效果）
